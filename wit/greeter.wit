@@ -6,4 +6,5 @@ interface greeter {
 
 world greeter-world {
     export greeter;
+    import greeter;
 }

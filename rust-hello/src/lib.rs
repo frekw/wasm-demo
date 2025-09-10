@@ -3,6 +3,7 @@ wit_bindgen::generate!({
 });
 
 use crate::exports::component::hello::greeter::Guest;
+use component::hello::greeter;
 
 struct Component;
 
@@ -10,6 +11,6 @@ export!(Component);
 
 impl Guest for Component {
     fn say_hello(name: String) -> String {
-        format!("Hello from Rust, {}!", name)
+        greeter::say_hello(format!("Hello from Rust, {}!", name).as_str())
     }
 }

@@ -167,8 +167,12 @@
           ];
 
           buildPhase = ''
-            wac plug ${packages.rust-handler}/lib/rust_handler.wasm \
+            wac plug ${packages.rust-hello}/lib/hello.wasm \
               --plug ${packages.go-hello}/lib/hello.wasm \
+              -o linked1.wasm
+
+            wac plug ${packages.rust-handler}/lib/rust_handler.wasm \
+              --plug linked1.wasm \
               -o linked.wasm
           '';
 
