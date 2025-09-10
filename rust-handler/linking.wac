@@ -1,0 +1,9 @@
+package component:linked;
+
+let greeter = new component:greeter {};
+
+let handler = new component:handler {
+    greeter: greeter,
+};
+
+export handler.handle;
