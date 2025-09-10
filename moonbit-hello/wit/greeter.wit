@@ -1,0 +1,10 @@
+package component:hello;
+
+interface greeter {
+    say-hello: func(name: string) -> string;
+}
+
+world greeter-world {
+    export greeter;
+    import greeter;
+}

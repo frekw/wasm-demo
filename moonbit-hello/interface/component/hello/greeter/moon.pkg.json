@@ -1,0 +1,1 @@
+{ "import": [{ "path" : "component/hello/ffi", "alias" : "ffi" }] }

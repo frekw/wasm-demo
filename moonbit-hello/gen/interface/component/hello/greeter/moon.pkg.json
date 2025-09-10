@@ -1,0 +1,7 @@
+{
+    "import": [
+        {
+            "path": "component/hello/interface/component/hello/greeter"
+        }
+    ]
+}

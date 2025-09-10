@@ -1,0 +1,11 @@
+
+{
+      "link": {
+            "wasm": {
+                  "exports": ["cabi_realloc:cabi_realloc", "wasmExportSayHello:component:hello/greeter#say-hello", "wasmExportSayHelloPostReturn:cabi_post_component:hello/greeter#say-hello"],
+                  "export-memory-name": "memory",
+                  "heap-start-address": 16
+            }
+      }
+      ,"import": [{ "path" : "component/hello/ffi", "alias" : "ffi" }, { "path" : "component/hello/gen/interface/component/hello/greeter", "alias" : "greeter" }]
+}

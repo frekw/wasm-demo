@@ -7,6 +7,10 @@
     };
     nixpkgs.url = "nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
+    moonbit-overlay = {
+      url = "github:moonbit-community/moonbit-overlay";
+      inputs.core.url = "github:moonbitlang/core/36d0db63c195e5c8fa86a7a702bedc984b4ac879";
+    };
   };
 
   outputs =
@@ -30,6 +34,7 @@
             };
           })
           (prev: _: { fenix = import inputs.fenix { system = prev.system; }; })
+          inputs.moonbit-overlay.overlays.default
         ];
         pkgs = import nixpkgs {
           inherit system overlays;
@@ -54,57 +59,6 @@
         };
       in
       rec {
-        packages.rust-handler =
-          (pkgs.makeRustPlatform {
-            cargo = rustToolchain;
-            rustc = rustToolchain;
-          }).buildRustPackage
-            {
-              name = "rust-handler";
-              src = ./rust-handler;
-              cargoLock.lockFile = ./rust-handler/Cargo.lock;
-
-              buildInputs = [
-                wit
-              ];
-
-              buildPhase = ''
-                cp ${wit}/greeter.wit ./wit/greeter.wit
-                cp ${wit}/handler.wit ./wit/handler.wit
-
-                cargo build --release --target ${rustBuildTarget}
-              '';
-
-              installPhase = ''
-                mkdir -p $out/lib
-                cp target/${rustBuildTarget}/release/*.wasm $out/lib/
-              '';
-            };
-
-        packages.rust-hello =
-          (pkgs.makeRustPlatform {
-            cargo = rustToolchain;
-            rustc = rustToolchain;
-          }).buildRustPackage
-            {
-              name = "rust-hello";
-              src = ./rust-hello;
-              cargoLock.lockFile = ./rust-hello/Cargo.lock;
-
-              buildInputs = [ wit ];
-
-              buildPhase = ''
-                cp ${wit}/greeter.wit ./wit/greeter.wit
-
-                cargo build --release --target ${rustBuildTarget}
-              '';
-
-              installPhase = ''
-                mkdir -p $out/lib
-                cp target/${rustBuildTarget}/release/*.wasm $out/lib/
-              '';
-            };
-
         packages.go-hello = pkgs.stdenv.mkDerivation {
           name = "go-hello";
           version = "0.1";
@@ -148,6 +102,86 @@
           '';
         };
 
+        packages.moonbit-hello = pkgs.stdenv.mkDerivation {
+          name = "moonbit-hello";
+          version = "0.1";
+
+          src = ./moonbit-hello;
+
+          buildInputs = [
+            wit
+          ];
+
+          nativeBuildInputs = [
+            pkgs.moonbit-bin.moonbit.v0_6_24-012953835
+            pkgs.wasm-tools
+          ];
+
+          buildPhase = ''
+            cp ${wit}/greeter.wit wit/
+            moon build --target wasm
+
+            wasm-tools component embed wit target/wasm/release/build/gen/gen.wasm -o target/wasm/release/build/gen/gen.wasm --encoding utf16
+            wasm-tools component new target/wasm/release/build/gen/gen.wasm -o target/wasm/release/build/gen/gen.wasm
+          '';
+
+          installPhase = ''
+            mkdir -p $out/lib
+            cp -r target/wasm/release/build/gen/gen.wasm $out/lib/hello.wasm
+          '';
+        };
+
+        packages.rust-hello =
+          (pkgs.makeRustPlatform {
+            cargo = rustToolchain;
+            rustc = rustToolchain;
+          }).buildRustPackage
+            {
+              name = "rust-hello";
+              src = ./rust-hello;
+              cargoLock.lockFile = ./rust-hello/Cargo.lock;
+
+              buildInputs = [ wit ];
+
+              buildPhase = ''
+                cp ${wit}/greeter.wit ./wit/greeter.wit
+
+                cargo build --release --target ${rustBuildTarget}
+              '';
+
+              installPhase = ''
+                mkdir -p $out/lib
+                cp target/${rustBuildTarget}/release/*.wasm $out/lib/
+              '';
+            };
+
+        packages.rust-handler =
+          (pkgs.makeRustPlatform {
+            cargo = rustToolchain;
+            rustc = rustToolchain;
+          }).buildRustPackage
+            {
+              name = "rust-handler";
+              src = ./rust-handler;
+              cargoLock.lockFile = ./rust-handler/Cargo.lock;
+
+              buildInputs = [
+                wit
+              ];
+
+              buildPhase = ''
+                cp ${wit}/greeter.wit ./wit/greeter.wit
+                cp ${wit}/handler.wit ./wit/handler.wit
+
+                cargo build --release --target ${rustBuildTarget}
+              '';
+
+              installPhase = ''
+                mkdir -p $out/lib
+                cp target/${rustBuildTarget}/release/*.wasm $out/lib/
+              '';
+            };
+
         packages.linked = pkgs.stdenv.mkDerivation {
           name = "linked";
 
@@ -158,6 +192,7 @@
 
           buildInputs = [
             packages.go-hello
+            packages.moonbit-hello
             packages.rust-handler
             packages.rust-hello
           ];
@@ -168,11 +203,15 @@
 
           buildPhase = ''
             wac plug ${packages.rust-hello}/lib/hello.wasm \
-              --plug ${packages.go-hello}/lib/hello.wasm \
+              --plug ${packages.moonbit-hello}/lib/hello.wasm \
               -o linked1.wasm
 
+            wac plug linked1.wasm \
+              --plug ${packages.go-hello}/lib/hello.wasm \
+              -o linked2.wasm
+
             wac plug ${packages.rust-handler}/lib/rust_handler.wasm \
-              --plug linked1.wasm \
+              --plug linked2.wasm \
               -o linked.wasm
           '';
 
@@ -189,6 +228,7 @@
         devShells.default = pkgs.mkShell {
           inputsFrom = [
             self.packages."${system}".go-hello
+            self.packages."${system}".moonbit-hello
             self.packages."${system}".rust-handler
             self.packages."${system}".rust-hello
           ];
