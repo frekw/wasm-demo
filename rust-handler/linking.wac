@@ -1,6 +1,10 @@
 package component:linked;
 
-let greeter = new component:greeter {};
+let cli = new wasi:cli/environment@0.2.3;
+
+let greeter = new component:greeter {
+    wasi:cli/environment@0.2.3: cli,
+};
 
 let handler = new component:handler {
     greeter: greeter,

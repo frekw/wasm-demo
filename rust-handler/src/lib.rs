@@ -1,9 +1,9 @@
 wit_bindgen::generate!({
-    with: { "wasi:clocks/monotonic-clock@0.2.6": generate, },
-    with: { "wasi:http/types@0.2.6": generate, },
-    with: { "wasi:io/error@0.2.6": generate, },
-    with: { "wasi:io/poll@0.2.6": generate, },
-    with: { "wasi:io/streams@0.2.6": generate, },
+    with: { "wasi:clocks/monotonic-clock@0.2.3": generate, },
+    with: { "wasi:http/types@0.2.3": generate, },
+    with: { "wasi:io/error@0.2.3": generate, },
+    with: { "wasi:io/poll@0.2.3": generate, },
+    with: { "wasi:io/streams@0.2.3": generate, },
     world: "handler",
 });
 

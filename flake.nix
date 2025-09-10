@@ -64,26 +64,18 @@
               src = ./rust-handler;
               cargoLock.lockFile = ./rust-handler/Cargo.lock;
 
-              buildInputs = [ wit ];
-
-              nativeBuildInputs = [
-                pkgs.wac
+              buildInputs = [
+                wit
               ];
 
               buildPhase = ''
                 cp -r ${wit} ./wit
                 cargo build --release --target ${rustBuildTarget}
-                wac compose linking.wac \
-                  --use component:greeter=${packages.rust-hello}/lib/rust_hello.wasm \
-                  --use component:handler=target/${rustBuildTarget}/release/rust_handler.wasm \
-                  -o linked.wasm
               '';
-
-              # wasm-tools component embed wit target/wasm32-wasip2/release/rust_handler.wasm -o handler.wasm --encoding utf16 --world component:hello/handler
 
               installPhase = ''
                 mkdir -p $out/lib
-                cp linked.wasm $out/lib/handler.wasm
+                cp target/${rustBuildTarget}/release/*.wasm $out/lib/
               '';
             };
 
@@ -110,8 +102,37 @@
               '';
             };
 
+        packages.linked = pkgs.stdenv.mkDerivation {
+          name = "linked";
+
+          phases = [
+            "buildPhase"
+            "installPhase"
+          ];
+
+          buildInputs = [
+            packages.rust-hello
+            packages.rust-handler
+          ];
+
+          nativeBuildInputs = [
+            pkgs.wac
+          ];
+
+          buildPhase = ''
+            wac plug ${packages.rust-handler}/lib/rust_handler.wasm \
+              --plug ${packages.rust-hello}/lib/hello.wasm \
+              -o linked.wasm
+          '';
+
+          installPhase = ''
+            mkdir -p $out/lib
+            cp linked.wasm $out/lib/
+          '';
+        };
+
         packages.default = pkgs.writeShellScriptBin "run" ''
-          ${pkgs.wasmtime}/bin/wasmtime serve --wasi cli=y,http=y ${packages.rust-handler}/lib/rust_handler.wasm
+          ${pkgs.wasmtime}/bin/wasmtime serve --wasi cli=y,http=y ${packages.linked}/lib/linked.wasm
         '';
 
         devShells.default = pkgs.mkShell {
