@@ -1,5 +1,5 @@
 {
-  description = "WAM + WASI Demo";
+  description = "WASM + WASI Demo";
   inputs = {
     fenix = {
       url = "github:nix-community/fenix/monthly";
@@ -69,7 +69,9 @@
               ];
 
               buildPhase = ''
-                cp -r ${wit} ./wit
+                cp ${wit}/greeter.wit ./wit/greeter.wit
+                cp ${wit}/handler.wit ./wit/handler.wit
+
                 cargo build --release --target ${rustBuildTarget}
               '';
 
@@ -92,7 +94,8 @@
               buildInputs = [ wit ];
 
               buildPhase = ''
-                cp -r ${wit} ./wit
+                cp ${wit}/greeter.wit ./wit/greeter.wit
+
                 cargo build --release --target ${rustBuildTarget}
               '';
 
@@ -101,6 +104,49 @@
                 cp target/${rustBuildTarget}/release/*.wasm $out/lib/
               '';
             };
+
+        packages.go-hello = pkgs.stdenv.mkDerivation {
+          name = "go-hello";
+          version = "0.1";
+
+          src = ./go-hello;
+
+          buildInputs = [
+            wit
+          ];
+
+          nativeBuildInputs = [
+            pkgs.go
+            pkgs.tinygo
+            pkgs.wasm-tools
+            pkgs.wkg
+          ];
+
+          buildPhase = ''
+            cp ${wit}/greeter.wit wit/
+            cp ${wit}/greeter-go.wit wit/
+
+
+            export HOME=$PWD  # workaround for Go wanting a writable HOME
+            export GOMODCACHE=$TMPDIR/go-mod
+            export GOCACHE=$TMPDIR/go-cache
+            mkdir -p $GOMODCACHE $GOCACHE
+
+            wkg wit build
+            go generate
+
+            tinygo build \
+              -target=wasip2 \
+              -o hello.wasm \
+              --wit-package component:hello.wasm \
+              --wit-world greeter-go main.go
+          '';
+
+          installPhase = ''
+            mkdir -p $out/lib
+            cp hello.wasm $out/lib/
+          '';
+        };
 
         packages.linked = pkgs.stdenv.mkDerivation {
           name = "linked";
@@ -111,8 +157,9 @@
           ];
 
           buildInputs = [
-            packages.rust-hello
+            packages.go-hello
             packages.rust-handler
+            packages.rust-hello
           ];
 
           nativeBuildInputs = [
@@ -121,7 +168,7 @@
 
           buildPhase = ''
             wac plug ${packages.rust-handler}/lib/rust_handler.wasm \
-              --plug ${packages.rust-hello}/lib/hello.wasm \
+              --plug ${packages.go-hello}/lib/hello.wasm \
               -o linked.wasm
           '';
 
@@ -137,8 +184,9 @@
 
         devShells.default = pkgs.mkShell {
           inputsFrom = [
-            self.packages."${system}".rust-hello
+            self.packages."${system}".go-hello
             self.packages."${system}".rust-handler
+            self.packages."${system}".rust-hello
           ];
 
           packages = with pkgs; [
