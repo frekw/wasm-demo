@@ -31,7 +31,7 @@ impl Guest for Component {
 
         ResponseOutparam::set(outparam, Ok(resp));
 
-        let greeting = greeter::say_hello("WASI");
+        let greeting = greeter::say_hello("World!");
         
         let out = body.write().expect("outgoing stream");
         out.blocking_write_and_flush(greeting.as_bytes())

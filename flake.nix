@@ -182,7 +182,7 @@
               '';
             };
 
-        packages.linked = pkgs.stdenv.mkDerivation {
+        packages.composed = pkgs.stdenv.mkDerivation {
           name = "linked";
 
           phases = [
@@ -202,27 +202,29 @@
           ];
 
           buildPhase = ''
+            # Compose the modules together via `wac`
+
             wac plug ${packages.rust-hello}/lib/hello.wasm \
               --plug ${packages.moonbit-hello}/lib/hello.wasm \
-              -o linked1.wasm
+              -o comp1.wasm
 
-            wac plug linked1.wasm \
+            wac plug comp1.wasm \
               --plug ${packages.go-hello}/lib/hello.wasm \
-              -o linked2.wasm
+              -o comp2.wasm
 
             wac plug ${packages.rust-handler}/lib/rust_handler.wasm \
-              --plug linked2.wasm \
-              -o linked.wasm
+              --plug comp2.wasm \
+              -o composed.wasm
           '';
 
           installPhase = ''
             mkdir -p $out/lib
-            cp linked.wasm $out/lib/
+            cp composed.wasm $out/lib/
           '';
         };
 
         packages.default = pkgs.writeShellScriptBin "run" ''
-          ${pkgs.wasmtime}/bin/wasmtime serve --wasi cli=y,http=y ${packages.linked}/lib/linked.wasm
+          ${pkgs.wasmtime}/bin/wasmtime serve --wasi cli=y,http=y ${packages.composed}/lib/composed.wasm
         '';
 
         devShells.default = pkgs.mkShell {
